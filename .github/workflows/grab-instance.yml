@@ -1,0 +1,39 @@
+name: Grab OCI A1 Instance
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # cada 10 min
+  workflow_dispatch:
+
+# Candado: nunca dos corridas a la vez (evita cualquier riesgo de duplicar)
+concurrency:
+  group: grab-instance
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  grab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install OCI CLI
+        run: |
+          curl -fsSL -o install.sh https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh
+          bash install.sh --accept-all-defaults
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Write OCI credentials
+        run: |
+          mkdir -p ~/.oci
+          printf '%s' "${{ secrets.OCI_CONFIG }}" > ~/.oci/config
+          printf '%s' "${{ secrets.OCI_PRIVATE_KEY }}" > ~/.oci/key.pem
+          chmod 600 ~/.oci/config ~/.oci/key.pem
+
+      - name: Attempt launch
+        run: |
+          chmod +x ./grab.sh
+          ./grab.sh
