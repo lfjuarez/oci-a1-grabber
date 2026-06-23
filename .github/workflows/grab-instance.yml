@@ -2,7 +2,7 @@ name: Grab OCI A1 Instance
 
 on:
   schedule:
-    - cron: '*/10 * * * *'   # cada 10 min
+    - cron: '*/10 * * * *'   # cada 10 min (cron-job.org también dispara cada 5 min)
   workflow_dispatch:
 
 # Candado: nunca dos corridas a la vez (evita cualquier riesgo de duplicar)
@@ -17,6 +17,8 @@ jobs:
   grab:
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    outputs:
+      instance_created: ${{ steps.launch.outputs.instance_created }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -34,6 +36,29 @@ jobs:
           chmod 600 ~/.oci/config ~/.oci/key.pem
 
       - name: Attempt launch
+        id: launch
         run: |
           chmod +x ./grab.sh
           ./grab.sh
+
+      - name: Notify by email
+        if: steps.launch.outputs.instance_created == 'true'
+        run: |
+          curl --ssl-reqd \
+            --url 'smtps://smtp.gmail.com:465' \
+            --user 'l.federico.juarez@gmail.com:${{ secrets.GMAIL_APP_PASSWORD }}' \
+            --mail-from 'l.federico.juarez@gmail.com' \
+            --mail-rcpt 'l.federico.juarez@gmail.com' \
+            --upload-file - <<'EOF'
+          From: OCI Grabber <l.federico.juarez@gmail.com>
+          To: l.federico.juarez@gmail.com
+          Subject: =?UTF-8?Q?=E2=9C=85_Oracle_VM_creada=21?=
+          Content-Type: text/plain; charset=UTF-8
+
+          La instancia presupuestar-prod fue creada exitosamente en Oracle Cloud.
+
+          Para obtener la IP publica, corre:
+            oci compute instance list-vnics --instance-id <OCID>
+
+          O revisa: https://github.com/lfjuarez/oci-a1-grabber/actions
+          EOF

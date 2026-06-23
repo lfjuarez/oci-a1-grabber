@@ -56,13 +56,8 @@ print('OCID:', d['id'])
 print('Estado:', d['lifecycle-state'])
 ")
   echo "$INSTANCE_INFO"
-  # Notificación push via ntfy.sh
-  curl -s -o /dev/null \
-    -H "Title: ✅ Oracle VM creada!" \
-    -H "Priority: urgent" \
-    -H "Tags: white_check_mark,cloud" \
-    -d "presupuestar-prod lista. Conseguí la IP con: oci compute instance list-vnics --instance-id <OCID>" \
-    https://ntfy.sh/lfjuarez-oci-vm-prod || true
+  # Señal para que el workflow mande el mail
+  echo "instance_created=true" >> "${GITHUB_OUTPUT:-/dev/null}"
   exit 0
 elif echo "$OUT" | grep -qiE "out of (host )?capacity|InternalError"; then
   echo "[$(ts)] Sin capacidad. Reintenta el próximo cron."
