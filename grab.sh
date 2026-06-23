@@ -33,6 +33,11 @@ if [ "${EXISTING:-0}" -gt 0 ]; then
   exit 0
 fi
 
+# TEST: forzar notificación email (remover después de verificar)
+echo "[$(ts)] TEST: forzando notificación email..."
+echo "instance_created=true" >> "${GITHUB_OUTPUT:-/dev/null}"
+exit 0
+
 echo "[$(ts)] Intentando crear ${SHAPE} ${OCPUS}OCPU/${MEM_GB}GB..."
 
 OUT=$(oci compute instance launch \
